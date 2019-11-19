@@ -58,7 +58,7 @@ router.post('/users', async (req, res, next) => {
 
 router.post('/spots/new', verifyToken, spotsController.create);
 
-router.get('/spots/map', verifyToken, spotsController.getAll);
+router.get('/spots', verifyToken, spotsController.getAll);
 
 router.get('/spots/:spot_id', verifyToken, spotsController.getOne);
 

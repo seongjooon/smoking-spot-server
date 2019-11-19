@@ -15,7 +15,7 @@ const comentSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  comment_text: {
+  coment_text: {
     type: String,
     required: true
   },

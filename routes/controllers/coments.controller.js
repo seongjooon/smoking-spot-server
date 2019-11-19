@@ -5,11 +5,13 @@ exports.resister = async (req, res, next) => {
     const newComent = new Coment(req.body);
     await newComent.save();
 
-    const comentList = await Coment.find({ spot_id: req.params.spot_id });
+    const comentList = await Coment.find({ spot_id: req.params.spot_id }).sort({
+      created_at: 'desc'
+    });
 
     res.status(201).json({ result: 'ok', comentList });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     next();
     res.status(500).json({ errMessage: 'Error' });
   }
@@ -17,7 +19,9 @@ exports.resister = async (req, res, next) => {
 
 exports.getComents = async (req, res, next) => {
   try {
-    const coments = await Coment.find({ spot_id: req.params.spot_id });
+    const coments = await Coment.find({ spot_id: req.params.spot_id }).sort({
+      created_at: 'desc'
+    });
 
     res.status(201).json({ result: 'ok', coments });
   } catch (err) {
