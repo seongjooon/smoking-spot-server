@@ -1,28 +1,11 @@
 const mongoose = require('mongoose');
-const objectId = mongoose.Types.ObjectId;
 
 const comentSchema = new mongoose.Schema({
-  spot_id: {
-    type: objectId,
-    ref: 'Spot',
-    required: true
-  },
-  created_by: {
-    type: String,
-    required: true
-  },
-  created_at: {
-    type: Date,
-    required: true
-  },
-  coment_text: {
-    type: String,
-    required: true
-  },
-  rate: {
-    type: Number,
-    required: true
-  }
+  spot_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Spot', required: true, index: true },
+  created_by: { type: String, required: true },
+  created_at: { type: Date, required: true, default: Date.now },
+  coment_text: { type: String, required: true, trim: true, maxlength: 500 },
+  rate: { type: Number, required: true, min: 0, max: 5 }
 });
 
-module.exports = mongoose.model('Coment', comentSchema);
+module.exports = mongoose.models.Coment || mongoose.model('Coment', comentSchema);

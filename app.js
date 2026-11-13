@@ -1,61 +1,46 @@
-const createError = require('http-errors');
-const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const app = express();
-const path = require('path');
-const logger = require('morgan');
-const cors = require('cors');
 require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const logger = require('morgan');
+const rateLimit = require('express-rate-limit');
 
+const connectDb = require('./lib/db');
 const indexRouter = require('./routes/index');
 
-const mongoose = require('mongoose');
-const db = mongoose.connection;
+const app = express();
 
-mongoose.connect(process.env.DATABASE_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true
+app.set('trust proxy', 1);
+app.use(helmet());
+app.use(logger(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+const origins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+app.use(cors({ origin: origins }));
+app.use(express.json({ limit: '100kb' }));
+app.use(rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false }));
+
+// 요청마다 DB 연결(캐시됨)을 보장한다. health 는 DB 없이 응답.
+app.use(async (req, res, next) => {
+  if (req.path === '/health') return next();
+  try {
+    await connectDb();
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
-
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', () => {
-  console.log('MongoDB connected!');
-});
-
-app.use(logger('dev'));
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(
-  session({
-    resave: true,
-    saveUninitialized: true,
-    secret: 'true',
-    cookie: {
-      maxAge: Number(process.env.ONE_HOUR),
-      sameSite: null
-    }
-  })
-);
 
 app.use('/', indexRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
+app.use((req, res) => res.status(404).json({ message: 'Not found' }));
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ message: 'Internal Server Error' });
 });
 
 module.exports = app;
